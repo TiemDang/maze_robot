@@ -61,21 +61,21 @@ class Environment :
         # Draw x_axis and y_axis each time robot rotate a theta deg
         line_lenght = 80
         x, y = position
-
+        """
         # Rotated robot
         x_axis = x + line_lenght * math.cos(-theta + math.pi /2), y + line_lenght * math.sin(-theta + math.pi/2)
         y_axis = x + line_lenght * math.cos(-theta + math.pi), y + line_lenght * math.sin(-theta + math.pi)
 
         """
         # Origin robot
-        x_axis = x + line_lenght * math.cos(theta ), y + line_lenght * math.sin(theta)
-        y_axis = x + line_lenght * math.cos(theta + math.pi/2), y + line_lenght * math.sin(theta + math.pi/2)
-        """
+        x_axis = (x + line_lenght * math.cos(-theta), y + line_lenght * math.sin(-theta))
+        y_axis = (x + line_lenght * math.cos(-theta + math.pi/2), y + line_lenght * math.sin(-theta + math.pi/2))
+        
         pygame.draw.line(self.map, self.red,(x, y) , x_axis, 3)
         pygame.draw.line(self.map, self.dark_blue,(x, y), y_axis, 3)
 
     
-    def robot_sensor(self, position, theta, points):
+    def robot_sensor(self, position,theta, points):
         for point in points :
             pygame.draw.line(self.map, self.green, position, point, 2)
             pygame.draw.circle(self.map, self.green, point, 5)

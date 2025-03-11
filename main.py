@@ -17,7 +17,7 @@ map_copy = map.copy()
 
 
 # Start position & size maze
-start_positon = (440, 0)
+start_positon = (440, 10)
 size = ([900, 900])
 running = True
 
@@ -39,17 +39,29 @@ while running :
     last_time = pygame.time.get_ticks()
 
 
-    pygame.display.update()
+    #pygame.display.update()
+    robot.move(dt)
+    robot.update_sensor_data(map_copy, environment.black)
+
+
+
+    # Test--------------------------------------------------------------------------
+
+    # Test--------------------------------------------------------------------------
+
     
+    pygame.display.update()
     environment.map.fill(environment.black)
     environment.map.blit(map, (0, 0))
-    robot.move(dt)
+    #robot.move(dt)
 
 
     robot.draw(environment.map)
     
     environment.trail((robot.x, robot.y))
     environment.robot_frames([robot.x, robot.y], robot.theta)
+    environment.robot_sensor((robot.x, robot.y), robot.theta, robot.points)
+    environment.sensor_info(robot.sensor_data)
     environment.write_info(robot.vr, robot.vl, robot.theta)
 
     pygame.display.update()
