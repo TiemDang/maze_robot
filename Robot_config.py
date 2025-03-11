@@ -9,7 +9,7 @@ class Robot :
     def __init__(self, start_postion, image, vl, vr):
         self.x = start_postion[0]
         self.y = start_postion[1]
-        self.theta = -180
+        self.theta = 90
         self.vr = vr # right wheel
         self.vl = vl # left wheel
 
@@ -63,7 +63,7 @@ class Robot :
         
         #angles = [self.theta, np.pi/3 + self.theta, 2*np.pi/3 + self.theta, np.pi + self.theta, 4*np.pi/3 + self.theta, 5*np.pi/3 + self.theta]
 
-        angles = [self.theta + (-np.pi/2), self.theta + (-np.pi), self.theta + 3*(-np.pi/2), self.theta + (-2* np.pi)]
+        angles = [self.theta/180 * np.pi + (-np.pi/2), self.theta/180 * np.pi + (-np.pi), self.theta/180 * np.pi + 3*(-np.pi/2), self.theta/ 180 * np.pi + (-2* np.pi)]
 
         # position of each sensor [0 = head, 1 = right, 2 = behind, 3 = left]
 
@@ -87,6 +87,17 @@ class Robot :
 
         self.sensor_data = edge_distances
         self.points = edge_points
+    
+        print(f"h :{self.sensor_data[0]}, r :{self.sensor_data[1]}, bh : {self.sensor_data[2]}, l: {self.sensor_data[3]}")
+
+        """
+        # -----Test movement -----------
+        if self.sensor_data[0] < 10 :
+            self.vl = 15
+            self.vr = 10
+            self.theta = 180"
+        """
+
             
 
 
