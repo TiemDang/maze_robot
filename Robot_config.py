@@ -48,10 +48,10 @@ class Robot :
 
         self.x = self.x + x_dot * dt * 300 # 300 is a scale between simulate and reality
         self.y = self.y + y_dot * dt * 300
-        #self.theta = math.radians(self.theta) + math.radians(theta_dot * dt) # pygame use radian
-        self.theta = self.theta + theta_dot * dt
+        self.theta = self.theta + math.radians(theta_dot* dt)
+        #self.theta = self.theta + theta_dot * dt / 300
         # Test 
-        print(f"{self.x} | {self.y} | {self.theta} | {theta_dot}")
+        print(f"{self.x} | {self.y} | {self.theta} | {math.radians(theta_dot)}")
 
 
         # Rotated image
