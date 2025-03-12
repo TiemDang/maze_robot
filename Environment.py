@@ -75,8 +75,10 @@ class Environment :
         pygame.draw.line(self.map, self.dark_blue,(x, y), y_axis, 3)
 
     
-    def robot_sensor(self, position,theta, points):
+    def robot_sensor(self, position, points):
         for point in points :
             pygame.draw.line(self.map, self.green, position, point, 2)
             pygame.draw.circle(self.map, self.green, point, 5)
+            
+            
 

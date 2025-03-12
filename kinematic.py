@@ -3,11 +3,11 @@ import math
 
 """"
 Robot hardware
-- Alpha = 90 & -90 
-- Beta = 0
+- Alpha = 135 & -135 
+- Beta = 45 & -45
 - l = 10cm mean 30px
 - r = 2.5cm mean 7.5px
-- Theta at first is -90 deg
+- Theta at first is 90 deg
 """
 class Forward_kinematic :
     def __init__(self, alpha, beta, l, r, theta, num_wheel, phi):
@@ -24,27 +24,26 @@ class Forward_kinematic :
         
         rotation_matrix = np.zeros((3,3))
 
-        # ----------- Convert to degree ---------------------
-        rotation_matrix[0][0] = math.cos(math.radians(self.theta))
-        rotation_matrix[0][1] = - math.sin(math.radians(self.theta))
-        rotation_matrix[1][0] = math.sin(math.radians(self.theta))
-        rotation_matrix[1][1] = math.cos(math.radians(self.theta))
-        rotation_matrix[2][2] = 1
-        """
+        
+        # # ----------- Convert to degree ---------------------
+        # rotation_matrix[0][0] = math.cos(math.radians(self.theta))
+        # rotation_matrix[0][1] = - math.sin(math.radians(self.theta))
+        # rotation_matrix[1][0] = math.sin(math.radians(self.theta))
+        # rotation_matrix[1][1] = math.cos(math.radians(self.theta))
+        # rotation_matrix[2][2] = 1
+        
         
         # Conver radians
-        rotation_matrix[0][0] = math.cos(self.theta)
-        rotation_matrix[0][1] = - math.sin(self.theta)
-        rotation_matrix[1][0] = math.sin(self.theta)
-        rotation_matrix[1][1] = math.cos(self.theta)
+        rotation_matrix[0][0] = math.cos(self.theta/180 * np.pi)
+        rotation_matrix[0][1] = - math.sin(self.theta/180 * np.pi)
+        rotation_matrix[1][0] = math.sin(self.theta/180 * np.pi)
+        rotation_matrix[1][1] = math.cos(self.theta/180 *np.pi)
         rotation_matrix[2][2] = 1
-        """
+        
 
         #print(matrix_inverse)
         return rotation_matrix
-    
-    
-    """
+    """ 
     def J1f_inverse(self):
         j1f = np.zeros((self.num_wheel,3))
         for colum in range(self.num_wheel):
@@ -79,7 +78,9 @@ class Forward_kinematic :
     
 
 
+# -------------Test--------------------
 
+"""
 forward_kine = Forward_kinematic((135, -135), (45, -45), math.sqrt(10**2 + 10**2), 0.025, 90, 2, (15,15))
 rotation = forward_kine.rotation_matrix()
 mtrx_2 = forward_kine.matrix_2()
@@ -92,6 +93,5 @@ mtrx_2 = forward_kine.matrix_2()
 
 global_frame = rotation @ mtrx_2
 print(global_frame)
-
-print(np.cos(np.pi/2))
+"""
 

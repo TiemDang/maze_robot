@@ -2,6 +2,7 @@ import math
 import numpy as np
 import pygame
 from kinematic import Forward_kinematic
+from calculate_theta_test import calculate_degree
 
 # 3m x 3m = 900px x 900px
 # 1m =  300px
@@ -9,7 +10,7 @@ class Robot :
     def __init__(self, start_postion, image, vl, vr):
         self.x = start_postion[0]
         self.y = start_postion[1]
-        self.theta = 90
+        self.theta = 180
         self.vr = vr # right wheel
         self.vl = vl # left wheel
 
@@ -49,9 +50,11 @@ class Robot :
         self.x = self.x + x_dot * dt * 300 # 300 is a scale between simulate and reality
         self.y = self.y + y_dot * dt * 300
         self.theta = self.theta + math.radians(theta_dot* dt)
-        #self.theta = self.theta + theta_dot * dt / 300
+
+        #self.theta = self.theta + (theta_dot* dt) # Test 
+        
         # Test 
-        print(f"{self.x} | {self.y} | {self.theta} | {math.radians(theta_dot)}")
+        print(f"{self.x} | {self.y} | {self.theta} | {theta_dot}")
 
 
         # Rotated image
@@ -62,10 +65,11 @@ class Robot :
     def update_sensor_data(self, track_copy, black_color):
         
         #angles = [self.theta, np.pi/3 + self.theta, 2*np.pi/3 + self.theta, np.pi + self.theta, 4*np.pi/3 + self.theta, 5*np.pi/3 + self.theta]
-
-        angles = [self.theta/180 * np.pi + (-np.pi/2), self.theta/180 * np.pi + (-np.pi), self.theta/180 * np.pi + 3*(-np.pi/2), self.theta/ 180 * np.pi + (-2* np.pi)]
-
-        # position of each sensor [0 = head, 1 = right, 2 = behind, 3 = left]
+        theta_rad =  ( self.theta / 180 ) * np.pi
+        angles = [-theta_rad + 3 * np.pi / 2, -theta_rad , -theta_rad + np.pi/2]
+        
+        
+        # position of each sensor [0 :left , 1 : head / forward, 2]
 
 
         edge_points = []
@@ -76,7 +80,7 @@ class Robot :
             distance = 0
             edge_x, edge_y = int(self.x), int(self.y)
 
-            while 0 <= edge_x < track_copy.get_width() and 0 <= edge_y < track_copy.get_height() and track_copy.get_at((edge_x, edge_y)) != black_color:
+            while 0 <= edge_x < track_copy.get_width() and 0 <= edge_y < track_copy.get_height() and track_copy.get_at((edge_x, edge_y)) != black_color and distance < 100:
                 distance += 1
                 edge_x = int(self.x + distance * math.cos(angle))
                 edge_y = int(self.y - distance * math.sin(angle))
@@ -88,7 +92,29 @@ class Robot :
         self.sensor_data = edge_distances
         self.points = edge_points
     
-        print(f"h :{self.sensor_data[0]}, r :{self.sensor_data[1]}, bh : {self.sensor_data[2]}, l: {self.sensor_data[3]}")
+        print(f"left :{self.sensor_data[0]}, forward :{self.sensor_data[1]}, right : {self.sensor_data[2]}")
+
+        
+        # for index, distance in enumerate(self.sensor_data):
+        #     print(index, distance, self.points[index])
+        #     if distance > 50 :
+        #         root_postion = (self.x, self.y)
+        #         cal_value = calculate_degree(root_postion,self.points[0], root_postion, self.points[index])
+        #         deg = cal_value.cal_degree_vec()
+        #         self.theta = self.theta + deg / 180 * np.pi
+
+        # for index, distance in enumerate(self.sensor_data):
+        #     #print(index, distance, self.points[index])
+
+        #     if distance > 80 and self.sensor_data[0] < 40:
+        #         root_position = (self.x, self.y)
+
+        #         cal_value = calculate_degree(root_position, self.points[0], root_position, self.points[index])
+        #         deg = cal_value.cal_degree_vec()
+        #         self.theta -= deg
+
+             
+
 
         """
         # -----Test movement -----------

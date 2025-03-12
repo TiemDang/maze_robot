@@ -17,7 +17,7 @@ map_copy = map.copy()
 
 
 # Start position & size maze
-start_positon = (440, 10)
+start_positon = (430, 20)
 size = ([900, 900])
 running = True
 
@@ -26,7 +26,7 @@ last_time = pygame.time.get_ticks()
 environment = Environment(size, "/home/venus/venus/maze_robot/mecung.png")
 
 # Robot
-robot = Robot(start_positon, "/home/venus/venus/maze_robot/car.png", 15, 15)
+robot = Robot(start_positon, "/home/venus/venus/maze_robot/car.png", 0, 0)
 
 # Main loop
 
@@ -60,7 +60,7 @@ while running :
     
     environment.trail((robot.x, robot.y))
     environment.robot_frames([robot.x, robot.y], robot.theta)
-    environment.robot_sensor((robot.x, robot.y), robot.theta, robot.points)
+    environment.robot_sensor((robot.x, robot.y), robot.points)
     environment.sensor_info(robot.sensor_data)
     environment.write_info(robot.vr, robot.vl, robot.theta)
 
