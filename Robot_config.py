@@ -3,17 +3,15 @@ import numpy as np
 import pygame
 from kinematic import Forward_kinematic
 from kinematic import Inverse_kinematic
-from calculate_theta_test import calculate_degree
 from class_GA import Genetic_Algo
 
 # 3m x 3m = 900px x 900px
 # 1m =  300px
 class Robot :
-    def __init__(self, start_postion, image, vl, vr):
-        self.x = start_postion[0]
-        self.y = start_postion[1]
+    def __init__(self, start_position, image, vl, vr):
+        self.x = start_position[0]
+        self.y = start_position[1]
         self.theta = -np.pi / 2
-
 
         self.vl = vl # left wheel
         self.vr = vr # right wheel
@@ -22,13 +20,17 @@ class Robot :
         self.vy = 0
         self.vtheta = 0
 
-
         self.x_dot = 0
         self.y_dot = 0
         self.theta_dot = 0
 
         self.sensor_valid = 0
         
+        # For RL integration
+        self.prev_x = self.x
+        self.prev_y = self.y
+        self.prev_distance = None
+        self.prev_action = None
         
         self.junctions = []
         self.N = 0
@@ -39,19 +41,16 @@ class Robot :
         self.rotated = self.image
         self.rect = self.rotated.get_rect(center=(self.x, self.y))
 
-
         # Sensor data
         self.sensor_data = []
         self.points = []
 
         # Check if car crashing
         self.crash = False
-        self.cost_function = 0
         self.time = 0
+        self.cost_function = 0
 
         # Cost function
-        self.prev_x = self.x
-        self.prev_y = self.y
         self.frozen_time = 0
 
     def draw(self, map):
@@ -62,7 +61,11 @@ class Robot :
         l = 0.05  # cm 
         # Material for Forward kinematic formula
         kinematic_fw = Forward_kinematic((np.pi /2, -np.pi/2), (0, 0), l, 0.025, self.theta, 2)
-        kinematic_inv = Inverse_kinematic((np.pi /2 , -np.pi/2), (0, 0), l, 0.025, self.theta, 2)
+        kinematic_inv = Inverse_kinematic((np.pi /2, -np.pi/2), (0, 0), l, 0.025, self.theta, 2)
+        
+        # Save previous position for reward calculation
+        self.prev_x = self.x
+        self.prev_y = self.y
         
         # Kinematic variable -----------------------
         rotation_inv = kinematic_fw.inv_rotation_matrix()
@@ -73,7 +76,6 @@ class Robot :
         
         j2 = kinematic_fw.J2()
         j2_inv = kinematic_inv.J2_inv()
-
 
         # Results inverse
         V = j2_inv @ j1f @ np.array([[self.vx], [self.vy], [self.vtheta]])
@@ -93,7 +95,6 @@ class Robot :
         
         # Test (done) 
         #print(f"{self.x} | {self.y} | {self.theta} | {theta_dot}")
-
 
         # Rotated image
         theta_deg = math.degrees(self.theta) # Convert radians to deg
@@ -156,8 +157,36 @@ class Robot :
             self.crash = True
             self.cost_function = self.cost_function + 10000
     
-
+    def get_state(self):
+        """Return the current state for RL"""
+        return self.sensor_data + [float(self.x), float(self.y), float(self.theta)]
+    
+    def reset(self, start_position=(450, 100), theta=np.pi):
+        """Reset the robot to starting position"""
+        self.x = start_position[0]
+        self.y = start_position[1]
+        self.theta = theta
         
+        self.vx = 0
+        self.vy = 0
+        self.vtheta = 0
+        
+        self.x_dot = 0
+        self.y_dot = 0
+        self.theta_dot = 0
+        
+        self.sensor_valid = 0
+        self.sensor_data = []
+        
+        self.crash = False
+        self.time = 0
+        self.N = 0
+        self.cost_function = 0
+        
+        # Reset rect position
+        self.rect = self.rotated.get_rect(center=(self.x, self.y))
+        
+        return self.get_state()
 
 
 
