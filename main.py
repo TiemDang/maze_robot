@@ -3,132 +3,217 @@ from Environment import Environment
 import math
 import numpy as np
 import pygame
-from class_GA import Genetic_Algo
-from ClassNeuralNetwork import NeuralNet
-from cost_calculate import calculate_cost
-# In pygame 90 mean -90 in kinematics
+from ppo_agent import PPO
+from reward_model import RewardModel
+import torch
+import time
 
+# In pygame 90 mean -90 in kinematics
 
 # Initialize
 pygame.init()
 
-
 # Load map
-map = pygame.image.load("/home/venus/venus/maze_robot/maze.jpg")
+map = pygame.image.load("./maze.jpg")
 map_copy = map.copy()
 
-
 # Start position & size maze
-start_positon = (450, 100) # origin 450, 100
+start_position = (450, 100)  # origin 450, 100
 end_position = (450, 900, -np.pi/2)
 size = (900, 900)
 running = True
 
 dt = 0
 last_time = pygame.time.get_ticks()
-environment = Environment(size, "/home/venus/venus/maze_robot/maze.jpg")
+environment = Environment(size, "./maze.jpg")
 
-# Robot
-#robot = Robot(start_positon, "/home/venus/venus/maze_robot/car.png", 3, 3)
+# Robot setup
+robot = Robot(start_position, "./car.png", 2, 2)
 
-numbers = 30
-Robots = []
-for i in range(numbers):
-    Robots.append(Robot(start_positon, "/home/venus/venus/maze_robot/car.png", 2, 2))
+# Setup PPO agent
+# State: [8 sensor readings, x, y, theta]
+state_dim = 11  # 8 sensors + x, y, theta
+action_dim = 2  # vx, vtheta
+ppo_agent = PPO(state_dim=state_dim, action_dim=action_dim, hidden_dim=128, 
+               lr=3e-4, gamma=0.99, clip_ratio=0.2, batch_size=32, epochs=5)
 
+# Setup reward model
+reward_model = RewardModel(target_position=end_position[:2], target_orientation=end_position[2])
 
-# GA ininit
-pop = numbers
-GA_init = Genetic_Algo([-5, 5], (-5, 5), 30, 130, 12)
-population = GA_init.create_population()
+# Training parameters
+max_episodes = 1000
+max_steps_per_episode = 500
+update_frequency = 256  # Update policy after this many state transitions
 
+# Training stats
+episode_rewards = []
+best_reward = -float('inf')
+best_distance = float('inf')
 
-generation = 0
-max_generation = 50
+# Training loop
+episode = 0
 
-# Main loop
-
-while running and generation < max_generation:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-    Robot_available = pop 
-    decode = GA_init.decode_gen(population)
-    for idx, robot in enumerate(Robots) :
-        robot.x = start_positon[0]
-        robot.y = start_positon[1]
-        robot.theta = np.pi
+try:
+    while running and episode < max_episodes:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
         
+        # Reset environment
+        robot.x = start_position[0]
+        robot.y = start_position[1]
+        robot.theta = np.pi
         robot.vx = 0
+        robot.vtheta = 0
         robot.time = 0
-        robot.update_sensor_data(map_copy, (0, 0, 0))
-
-        robot.check_crash(map_copy, (0, 0, 0))
         robot.crash = False
+        
+        # Reset reward model
+        reward_model.reset((robot.x, robot.y))
+        
+        # Initial state (sensor readings + position + orientation)
+        robot.update_sensor_data(map_copy, (0, 0, 0))
+        state = robot.sensor_data + [float(robot.x), float(robot.y), float(robot.theta)]
+        
+        episode_reward = 0
+        step = 0
+        done = False
+        
+        while not done and step < max_steps_per_episode:
+            # Get action from policy
+            action, log_prob = ppo_agent.select_action(state)
+            
+            # Scale action: action[0] is vx, action[1] is vtheta
+            robot.vx = action[0] * 150  # Scale to reasonable range
+            robot.vtheta = action[1] * 1.0  # Scale to reasonable range
+            
+            # Execute action
+            robot.move(dt)
+            robot.time += dt
+            robot.update_sensor_data(map_copy, (0, 0, 0))
+            robot.check_crash(map_copy, (0, 0, 0))
+            
+            # Get new state
+            next_state = robot.sensor_data + [float(robot.x), float(robot.y), float(robot.theta)]
+            
+            # Calculate reward and check if done
+            robot_state = {
+                'position': (robot.x, robot.y),
+                'orientation': robot.theta,
+                'velocity': (robot.x_dot, robot.y_dot),
+                'sensor_data': robot.sensor_data,
+                'crash': robot.crash,
+                'time': robot.time
+            }
+            reward, done = reward_model.calculate_reward(robot_state)
+            
+            # Store transition in PPO memory
+            ppo_agent.store_transition(state, action, reward, next_state, done, log_prob)
+            
+            # Update state and accumulate reward
+            state = next_state
+            episode_reward += reward
+            step += 1
+            
+            # Visualize (optional, can be disabled for faster training)
+            robot.draw(environment.map)
+            environment.robot_frames([robot.x, robot.y], robot.theta)
+            environment.robot_sensor([robot.x, robot.y], robot.points)
+            environment.trail((robot.x, robot.y))
+            environment.write_info(robot.vr, robot.vl, robot.theta)
+            
+            dt = (pygame.time.get_ticks() - last_time) / 1000
+            last_time = pygame.time.get_ticks()
+            pygame.display.update()
+            environment.map.blit(map, (0, 0))
+            
+            # Uncomment to slow down visualization
+            # time.sleep(0.01)
+        
+        # Update policy
+        if (episode + 1) % 5 == 0:  # Update every 5 episodes
+            ppo_agent.update()
+        
+        # Record stats
+        episode_rewards.append(episode_reward)
+        distance_to_goal = math.sqrt((robot.x - end_position[0])**2 + (robot.y - end_position[1])**2)
+        
+        # Save best model
+        if episode_reward > best_reward:
+            best_reward = episode_reward
+            torch.save(ppo_agent.actor_critic.state_dict(), "best_model.pt")
+        
+        if distance_to_goal < best_distance:
+            best_distance = distance_to_goal
+        
+        # Print stats
+        print(f"Episode: {episode+1}/{max_episodes}, Reward: {episode_reward:.2f}, Distance: {distance_to_goal:.2f}, Best Distance: {best_distance:.2f}")
+        
+        episode += 1
 
-    while Robot_available > 0 :
-        for idx, robot in enumerate(Robots) :
-            #print(f"Robot {idx}: crash = {robot.crash}, vx = {robot.vx}, vtheta = {robot.vtheta}")
-            if robot.crash == False :
-                
-                # robot.vx = np.random.rand() * 300
-                # robot.vtheta = np.random.rand()
-                
-                decode_individual = decode[idx]
-                w = np.reshape(decode_individual[:110],(11, 10))
-                v = np.reshape(decode_individual[110:],(10, 2))
-                #print(w.shape, v.shape)
-                
-                
-                x = np.array(robot.sensor_data + [float(robot.x), float(robot.y), float(robot.theta)]).reshape(11, 1)
+except KeyboardInterrupt:
+    print("Training interrupted by user")
+    
+finally:
+    # Save final model
+    torch.save(ppo_agent.actor_critic.state_dict(), "final_model.pt")
+    pygame.quit()
 
-                VVV = NeuralNet(x, w, v).FeedForward()
-                #print(VVV.shape)
-                robot.vx = (VVV[0][0]) * 2.5
-                robot.vtheta = (VVV[1][0]) * 0.03
-
-                ex = end_position[0] - robot.x
-                ey = end_position[1] - robot.y
-                etheta = end_position[2] - robot.theta
-                robot.N = robot.N + 1
-
-
-                score = calculate_cost(robot.x, robot.y, robot.theta, robot.x_dot, robot.y_dot, robot.sensor_valid, robot.sensor_data)
-                robot.cost_function = robot.cost_function + score.euclid_score() + score.sensor_score()
-                robot.move(dt)
-
-                robot.time += dt
-                robot.check_crash(map_copy, (0,0,0))
-
-                if robot.crash :
-                     Robot_available -= 1
-                     robot.cost_function = robot.cost_function / robot.N
-                     #print(f"Robot {idx}: {robot.cost_function}")
-                robot.draw(environment.map)
-                robot.update_sensor_data(map_copy, environment.black)
-                environment.robot_frames([robot.x, robot.y], robot.theta)
-                environment.robot_sensor([robot.x, robot.y], robot.points)
-                #environment.trail((robot.x, robot.y))
-                #environment.write_info(robot.vr, robot.vl, robot.theta)
-
+# Testing loop (can be run separately with the trained model)
+def test_model(model_path):
+    # Load the trained model
+    ppo_agent.actor_critic.load_state_dict(torch.load(model_path))
+    
+    # Reset environment
+    robot.x = start_position[0]
+    robot.y = start_position[1]
+    robot.theta = np.pi
+    robot.vx = 0
+    robot.vtheta = 0
+    robot.time = 0
+    robot.crash = False
+    
+    # Test loop
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+        
+        # Get current state
+        robot.update_sensor_data(map_copy, (0, 0, 0))
+        state = robot.sensor_data + [float(robot.x), float(robot.y), float(robot.theta)]
+        
+        # Get action from policy (deterministic)
+        action = ppo_agent.select_action(state, deterministic=True)
+        
+        # Scale and execute action
+        robot.vx = action[0] * 150
+        robot.vtheta = action[1] * 1.0
+        
+        robot.move(dt)
+        robot.check_crash(map_copy, (0, 0, 0))
+        
+        if robot.crash or robot.time > 30:
+            running = False
+        
+        # Visualization
+        robot.draw(environment.map)
+        environment.robot_frames([robot.x, robot.y], robot.theta)
+        environment.robot_sensor([robot.x, robot.y], robot.points)
+        environment.trail((robot.x, robot.y))
+        
         dt = (pygame.time.get_ticks() - last_time) / 1000
         last_time = pygame.time.get_ticks()
         pygame.display.update()
         environment.map.blit(map, (0, 0))
-
-    fitness = []
-    for idx, robot in enumerate(Robots) :
-        fitness.append(robot.cost_function)
         
-    select_population = GA_init.selection(fitness, population)
-    cross_population = GA_init.crossover(select_population)
-    population = GA_init.mutation(cross_population, 0.2)
-    generation = generation + 1
+        robot.time += dt
+        
+        # Slow down for better visualization
+        time.sleep(0.05)
 
-    print(f'Generation: {generation}, j: {np.min(fitness)}, j_mean: {np.mean(fitness)}')
-    
-    
-pygame.quit()
+# Uncomment to run test after training
+# test_model("best_model.pt")
 
 
