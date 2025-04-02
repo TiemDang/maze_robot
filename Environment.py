@@ -47,7 +47,7 @@ class Environment :
 
 
     def trail(self, position):
-        if len(self.trail_set) > 3000 :
+        if len(self.trail_set) > 300 :
             self.trail_set.pop(0)
 
         self.trail_set.append(position)
@@ -68,8 +68,8 @@ class Environment :
 
         """
         # Origin robot
-        x_axis = (x + line_lenght * math.cos(theta/180 * np.pi), y + line_lenght * math.sin(theta/180 * np.pi))
-        y_axis = (x + line_lenght * math.cos(theta/180 * np.pi + math.pi/2), y + line_lenght * math.sin(theta/180 * np.pi + math.pi / 2) )
+        x_axis = (x + line_lenght*math.cos(-theta), y + line_lenght*math.sin(-theta))
+        y_axis = (x + line_lenght*math.cos(-theta + math.pi/2), y + line_lenght*math.sin(-theta+math.pi/2))
         
         pygame.draw.line(self.map, self.red,(x, y) , x_axis, 3)
         pygame.draw.line(self.map, self.dark_blue,(x, y), y_axis, 3)
