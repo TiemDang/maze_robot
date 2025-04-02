@@ -1,1 +1,6 @@
 __pycache__/
+*.pt
+*.npz
+*.mp4
+*.gif
+*.bmp
