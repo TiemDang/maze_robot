@@ -17,6 +17,9 @@ class calculate_cost :
         euclid_score = (math.sqrt((self.x - 450)**2 + (self.y - 900)**2 )) * 100 + math.sqrt((self.theta - (-math.pi/2))**2) * 500
         return euclid_score
     
+    def road_score(self):
+        road_score = ( self.x_dot + self.y_dot ) * 3
+        return road_score
     
     def sensor_score(self):
         num_sensor = 0
@@ -26,9 +29,9 @@ class calculate_cost :
 
 
         if num_sensor == 0:
-            sensor_score = 600
-        elif num_sensor > 1 :
-            sensor_score = (num_sensor - 1) * -300 
+            sensor_score = 1000
+        elif num_sensor > 0 :
+            sensor_score = num_sensor * -1500 
         return sensor_score
 
 

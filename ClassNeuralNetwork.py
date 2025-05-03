@@ -14,6 +14,7 @@ class NeuralNet :
         net_h = self.W.T @ self.X
         Y_head = af(net_h)
         output = self.V.T @ Y_head
+        output = np.tanh(output)
         # .T mean tranpose matrix
         return output
 

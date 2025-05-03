@@ -164,7 +164,7 @@ class Genetic_Algo:
     # Step 6 : mutation
     def mutation(self,cross_population, mutation_rate):
         population = cross_population
-        for individual in range(self.population_size):
+        for individual in range(1, self.population_size):
             for chromo in range(self.num_chromo):
                 if (np.random.rand() < mutation_rate):
                     indices_to_change = np.random.choice(self.num_gene, size=1, replace=False)

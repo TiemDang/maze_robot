@@ -37,7 +37,7 @@ class Robot :
 
         # Graphics
         self.image = pygame.image.load(image)
-        self.image = pygame.transform.scale(self.image,(60, 60))
+        self.image = pygame.transform.scale(self.image,(20, 20))
         self.rotated = self.image
         self.rect = self.rotated.get_rect(center=(self.x, self.y))
 
@@ -78,9 +78,9 @@ class Robot :
         j2_inv = kinematic_inv.J2_inv()
 
         # Results inverse
-        V = j2_inv @ j1f @ np.array([[self.vx], [self.vy], [self.vtheta]])
-        self.vr = V[0, 0]
-        self.vl = V[1, 0]
+        # V = j2_inv @ j1f @ np.array([[self.vx], [self.vy], [self.vtheta]])
+        # self.vr = V[0, 0]
+        # self.vl = V[1, 0]
         
         
         # Results forward
@@ -98,7 +98,7 @@ class Robot :
 
         # Rotated image
         theta_deg = math.degrees(self.theta) # Convert radians to deg
-        self.rotated = pygame.transform.rotozoom(self.image, theta_deg, 1)
+        self.rotated = pygame.transform.rotozoom(self.image, -theta_deg, 1)
         self.rect = self.rotated.get_rect(center=(self.x, self.y))
     
    
@@ -148,14 +148,14 @@ class Robot :
         if 0<= edge_x < width and 0 <= edge_y < height :
             if track_copy.get_at((edge_x, edge_y)) == black_color:
                 self.crash = True
-                self.cost_function = self.cost_function + 10000
+                self.cost_function = self.cost_function + 12000
         else :
             self.crash = True
-            self.cost_function += 10000
+            self.cost_function += 12000
         
         if self.time > 30 :
             self.crash = True
-            self.cost_function = self.cost_function + 10000
+            self.cost_function = self.cost_function + 12000
     
     def get_state(self):
         """Return the current state for RL"""
